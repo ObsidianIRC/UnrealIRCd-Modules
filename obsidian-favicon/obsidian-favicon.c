@@ -4,7 +4,7 @@
 /*** <<<MODULE MANAGER START>>>
 module
 {
-		documentation "https://github.com/ObsidianIRC/UnrealIRCd-Modules/blob/master/obsidian-favicon.c";
+		documentation "https://github.com/ObsidianIRC/UnrealIRCd-Modules/blob/master/README.md";
 		troubleshooting "In case of problems, check the documentation or e-mail me at v.a.pond@outlook.com";
 		min-unrealircd-version "6.1.10";
 		max-unrealircd-version "6.*";
