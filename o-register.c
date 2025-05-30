@@ -287,7 +287,7 @@ CMD_FUNC(register_account)
         return;
     }
 
-    User *found_user = find_user(accname, NULL);
+    Client *found_user = find_client(accname, NULL);
     if (found_user && found_user != client)
     {
         if (client->name) // Don't send before they have NICK first
