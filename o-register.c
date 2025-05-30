@@ -24,6 +24,10 @@ module
 #include "unrealircd.h"
 #include "obsidian.h"
 
+/**
+ * my_find_tkl_nameban - Checks if a given name is banned via TKL nameban.
+ * Returns a pointer to the TKL if found, otherwise NULL.
+ */
 TKL *my_find_tkl_nameban(const char *name)
 {
 	TKL *tkl;
@@ -66,7 +70,9 @@ Metadata* create_metadata(const char *key, const char *value) {
     return m;
 }
 
-// Add metadata to account
+/**
+ * add_metadata - Adds a metadata key/value pair to an Account.
+ */
 void add_metadata(Account *acc, const char *key, const char *value) {
     Metadata *m = create_metadata(key, value);
     m->next = acc->metadata_head;
@@ -75,7 +81,9 @@ void add_metadata(Account *acc, const char *key, const char *value) {
     acc->metadata_head = m;
 }
 
-// Free metadata list
+/**
+ * free_metadata - Frees a linked list of Metadata nodes.
+ */
 void free_metadata(Metadata *head) {
     Metadata *cur = head, *tmp;
     while (cur) {
@@ -87,7 +95,9 @@ void free_metadata(Metadata *head) {
     }
 }
 
-// Free account struct
+/**
+ * free_account - Frees all memory associated with an Account struct.
+ */
 void free_account(Account *acc) {
     if (!acc) return;
     free(acc->name);
@@ -102,7 +112,10 @@ void free_account(Account *acc) {
     free(acc);
 }
 
-// Convert Account struct to JSON object
+/**
+ * account_to_json - Converts an Account struct to a JSON object.
+ * Returns a new json_t* object.
+ */
 json_t* account_to_json(const Account *acc) {
     json_t *j = json_object();
     json_object_set_new(j, "name", json_string(acc->name));
@@ -132,7 +145,10 @@ json_t* account_to_json(const Account *acc) {
     return j;
 }
 
-// Write an account to the DB (append mode)
+/**
+ * write_account_to_db - Appends an Account to the account database file.
+ * Returns 1 on success, 0 on failure.
+ */
 int write_account_to_db(const Account *acc) {
     FILE *f = fopen(ACCOUNT_DB_PATH, "a");
     if (!f) return 0;
@@ -145,7 +161,10 @@ int write_account_to_db(const Account *acc) {
     return 1;
 }
 
-// Read all accounts from DB (returns a NULL-terminated array of Account*)
+/**
+ * read_accounts_from_db - Reads all accounts from the database file.
+ * Returns a NULL-terminated array of Account*.
+ */
 Account **read_accounts_from_db(void) {
     FILE *f = fopen(ACCOUNT_DB_PATH, "r");
     if (!f) return NULL;
@@ -193,7 +212,10 @@ Account **read_accounts_from_db(void) {
     return accounts;
 }
 
-// Module initialization
+/**
+ * MOD_INIT - Module initialization routine.
+ * Registers the account registration capability and command.
+ */
 MOD_INIT()
 {
     MARK_AS_GLOBAL_MODULE(modinfo);
@@ -213,25 +235,34 @@ MOD_INIT()
     return MOD_SUCCESS;
 }
 
-// Module load
+/**
+ * MOD_LOAD - Called when the module is loaded.
+ */
 MOD_LOAD()
 {
     return MOD_SUCCESS;
 }
 
-// Module unload
+/**
+ * MOD_UNLOAD - Called when the module is unloaded.
+ */
 MOD_UNLOAD()
 {
     return MOD_SUCCESS;
 }
 
-// Module test
+/**
+ * MOD_TEST - Called for module self-tests.
+ */
 MOD_TEST()
 {
    return MOD_SUCCESS;
 }
 
-// Our command function
+/**
+ * register_account - Handles the REGISTER command from users.
+ * Validates input, checks for bans, hashes password, and stores account.
+ */
 CMD_FUNC(register_account)
 {
     if (IsLoggedIn(client))
@@ -341,11 +372,17 @@ CMD_FUNC(register_account)
 }
 
 
+/**
+ * accreg_capability_parameter - Returns the parameter string for the registration capability.
+ */
 const char *accreg_capability_parameter(Client *client)
 {
 	return "before-connect,custom-account-name,email-required";
 }
 
+/**
+ * accreg_capability_visible - Determines if the registration capability is visible to the client.
+ */
 int accreg_capability_visible(Client *client)
 {
 	return 1;
