@@ -1,5 +1,5 @@
-#ifndef OBSIDIAN_ACCOUNT_H
-#define OBSIDIAN_ACCOUNT_H
+#ifndef OBSIDIAN_H
+#define OBSIDIAN_H
 
 // Database files
 #define ACCOUNT_DB_PATH "../data/obsidian-account.db"
