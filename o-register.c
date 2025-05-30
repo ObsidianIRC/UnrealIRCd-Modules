@@ -257,7 +257,10 @@ CMD_FUNC(register_account)
 
     if (find_user(accname, NULL) && find_user(accname, NULL) != client)
     {
-        sendto_one(client, NULL, ":%s FAIL REGISTER BAD_ACCOUNT_NAME %s :That account name is currently in use.", me.name, accname);
+        if (client->name) // Don't send before they have NICK first
+            sendto_one(client, NULL, ":%s FAIL REGISTER BAD_ACCOUNT_NAME %s :That account name is currently in use.", me.name, accname);
+        else // Send something generic instead, otherwise it could be interpreted as leaking accounts
+            sendto_one(client, NULL, ":%s FAIL REGISTER BAD_ACCOUNT_NAME %s :That account name is banned.", me.name, accname);
         return;
     }
 
@@ -284,6 +287,8 @@ CMD_FUNC(register_account)
         {
             if (client->name) // Don't send before they have NICK first
                 sendto_one(client, NULL, ":%s FAIL REGISTER ACCOUNT_EXISTS %s :That account name is already registered.", me.name, accname);
+            else // Send something generic instead, otherwise it could be interpreted as leaking accounts
+                sendto_one(client, NULL, ":%s FAIL REGISTER BAD_ACCOUNT_NAME %s :That account name is banned.", me.name, accname);
 
             for (int j = 0; accounts[j]; j++)
                 free_account(accounts[j]);
