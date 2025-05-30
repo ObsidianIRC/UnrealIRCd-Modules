@@ -255,7 +255,8 @@ CMD_FUNC(register_account)
         return;
     }
 
-    if (find_user(accname, NULL) && find_user(accname, NULL) != client)
+    User *found_user = find_user(accname, NULL);
+    if (found_user && found_user != client)
     {
         if (client->name) // Don't send before they have NICK first
             sendto_one(client, NULL, ":%s FAIL REGISTER BAD_ACCOUNT_NAME %s :That account name is currently in use.", me.name, accname);
