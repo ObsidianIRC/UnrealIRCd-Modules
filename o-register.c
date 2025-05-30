@@ -92,6 +92,7 @@ void free_account(Account *acc) {
     if (!acc) return;
     free(acc->name);
     free(acc->email);
+    free(acc->password);
     if (acc->channels) {
         for (char **c = acc->channels; *c; ++c)
             free(*c);
