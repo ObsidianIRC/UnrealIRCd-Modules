@@ -4,7 +4,7 @@
 /*** <<<MODULE MANAGER START>>>
 module
 {
-		documentation "https://github.com/ObsidianIRC/UnrealIRCd-Modules/blob/main/obsidian-favicon/README.md";
+		documentation "https://github.com/ObsidianIRC/UnrealIRCd-Modules/blob/main/README.md#ObsidianIRC%20Icon%20Module";
 		troubleshooting "In case of problems, check the documentation or e-mail me at v.a.pond@outlook.com";
 		min-unrealircd-version "6.1.10";
 		max-unrealircd-version "6.*";
@@ -39,9 +39,9 @@ void freeconf(void);
 
 ModuleHeader MOD_HEADER
   = {
-	"third/obsidian-favicon",
+	"third/o-icon",
 	"1.0",
-	"Obsidian Favicon Module",
+	"Obsidian ICON Module",
 	"Valware",
 	"unrealircd-6",
 };
@@ -62,7 +62,7 @@ MOD_INIT()
 MOD_LOAD()
 {
 	ISupport *is;
-    if (!(is = ISupportAdd(modinfo->handle, "FAVICON", cfg.isupport_line)))
+    if (!(is = ISupportAdd(modinfo->handle, "ICON", cfg.isupport_line)))
 		return MOD_FAILED;
 	return MOD_SUCCESS;
 }
@@ -142,7 +142,7 @@ int favicon_configrun(ConfigFile *cf, ConfigEntry *ce, int type)
 	if (!ce || !ce->name)
 		return 0;
 
-	if (strcmp(ce->name, "favicon"))
+	if (strcmp(ce->name, "icon"))
 		return 0;
 
 	for (cep = ce->items; cep; cep = cep->next)
