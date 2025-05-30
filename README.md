@@ -3,7 +3,7 @@ UnrealIRCd modules that implement additional functionality for the ObsidianIRC w
 
 ## Module READMEs
 
-### ObsidianIRC Favicon Module
+### ObsidianIRC Icon Module
 Provides IRC clients with a link to your favicon when specified in your `unrealircd.conf`
 ```
 icon {
