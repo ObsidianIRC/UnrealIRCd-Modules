@@ -58,7 +58,7 @@ long CAP_ACCOUNTREGISTRATION = 0L;
 ModuleHeader MOD_HEADER
 ={
     "third/o-register", /* Name of module */
-    "1.0.0", /* Version */
+    "1.0", /* Version */
     "Provides account registration", /* Short description of module */
     "ObsidianIRC Team", /* Author */
     "unrealircd-6", /* Version of UnrealIRCd */
