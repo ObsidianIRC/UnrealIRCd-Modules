@@ -10,7 +10,7 @@ module
 		max-unrealircd-version "6.*";
 		post-install-text {
 				"The module is installed. Now all you need to do is add a loadmodule line:";
-				"loadmodule \"obsidian\";";
+				"loadmodule \"third/o-icon\";";
 				"The module needs no other configuration.";
 				"Once you're good to go, you can finally type in your shell: ./unrealircd rehash";
 		}

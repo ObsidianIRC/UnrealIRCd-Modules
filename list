@@ -1,0 +1,37 @@
+module "third/o-icon"
+{
+		documentation "https://github.com/ObsidianIRC/UnrealIRCd-Modules/blob/main/README.md#ObsidianIRC%20Icon%20Module";
+        version "1.0";
+        author "ObsidianIRC Team";
+        description "Provides a server icon for your network";
+        source "https://raw.githubusercontent.com/ObsidianIRC/UnrealIRCd-Modules/refs/heads/main/o-icon.c";
+        sha256sum "fb3ce9ec4685b011c186b1c9cf3c9d4e1b4c53d59d17bb362e21393f0cbd505f";
+		troubleshooting "In case of problems, check the documentation or e-mail me at v.a.pond@outlook.com";
+		min-unrealircd-version "6.1.10";
+		max-unrealircd-version "6.*";
+		post-install-text {
+				"The module is installed. Now all you need to do is add a loadmodule line:";
+				"loadmodule \"third/o-icon\";";
+				"The module needs no other configuration.";
+				"Once you're good to go, you can finally type in your shell: ./unrealircd rehash";
+		}
+}
+
+module "third/o-register"
+{
+        documentation "https://github.com/ObsidianIRC/UnrealIRCd-Modules/blob/main/README.md#Account%20Registration";
+        version "1.0";
+        author "ObsidianIRC Team";
+        description "Provides account registration";
+        source "https://raw.githubusercontent.com/ObsidianIRC/UnrealIRCd-Modules/refs/heads/main/o-register.c";
+        sha256sum "a1122fa7708790691f0adaadd76cf9ba07e94623cf8c242d88443b49dd8ce12b";
+        troubleshooting "In case of problems, check the documentation or e-mail me at v.a.pond@outlook.com";
+        min-unrealircd-version "6.1.0";
+        max-unrealircd-version "6.*";
+        post-install-text {
+                "The module is installed. Now all you need to do is add a loadmodule line:";
+                "loadmodule \"third/o-register\";";
+                "The module needs no other configuration.";
+                "Once you're good to go, you can finally type in your shell: ./unrealircd rehash";
+        }
+}

@@ -1,6 +1,6 @@
 /* Copyright © 2025 Valware & ObsidianIRC Team
  * License: GPLv3
- * Name: third/obsidian-register
+ * Name: third/o-register
  */
 /*** <<<MODULE MANAGER START>>>
 module
@@ -11,7 +11,7 @@ module
         max-unrealircd-version "6.*";
         post-install-text {
                 "The module is installed. Now all you need to do is add a loadmodule line:";
-                "loadmodule \"third/obsidian-register\";";
+                "loadmodule \"third/o-register\";";
                 "The module needs no other configuration.";
                 "Once you're good to go, you can finally type in your shell: ./unrealircd rehash";
         }
@@ -43,9 +43,12 @@ TKL *my_find_tkl_nameban(const char *name)
 }
 
 #define CMD_REGISTER "REGISTER"
+#define CMD_LISTACC "LISTACC"
 #define REGCAP_NAME "draft/account-registration"
+
 /* Forward declarations */
 CMD_FUNC(register_account);
+CMD_FUNC(list_accounts);
 
 const char *accreg_capability_parameter(Client *client);
 int accreg_capability_visible(Client *client);
@@ -110,6 +113,25 @@ void free_account(Account *acc) {
     }
     free_metadata(acc->metadata_head);
     free(acc);
+}
+
+/**
+ * find_account_by_name - Searches for an account by name in the database.
+ * Returns a pointer to the Account struct if found, otherwise NULL.
+ */
+Account *find_account_by_name(const char *name) {
+    Account **accounts = read_accounts_from_db();
+    if (!accounts) return NULL;
+
+    for (int i = 0; accounts[i]; i++) {
+        if (strcasecmp(accounts[i]->name, name) == 0) {
+            Account *acc = accounts[i];
+            free(accounts);
+            return acc;
+        }
+    }
+    free(accounts);
+    return NULL;
 }
 
 /**
@@ -232,6 +254,7 @@ MOD_INIT()
 	}
 
     CommandAdd(modinfo->handle, CMD_REGISTER, register_account, 3, CMD_USER|CMD_UNREGISTERED);
+    CommandAdd(modinfo->handle, CMD_LISTACC, list_accounts, 3, CMD_OPER);
     return MOD_SUCCESS;
 }
 
@@ -386,4 +409,36 @@ const char *accreg_capability_parameter(Client *client)
 int accreg_capability_visible(Client *client)
 {
 	return 1;
+}
+
+CMD_FUNC(list_accounts)
+{
+    if (!BadPtr(parv[1]))
+    {
+        Account *acc = find_account_by_name(parv[1]);
+        if (!acc)
+        {
+            sendto_one(client, NULL, ":%s LISTACC NO_ACCOUNT %s :No such account registered.", me.name, parv[1]);
+            return;
+        }
+        sendto_one(client, NULL, ":%s LISTACC ACCOUNT %s %s %ld %d", me.name, acc->name, acc->email, (long)acc->time_registered, acc->verified);
+        free_account(acc);
+        return;
+    }
+    Account **accounts = read_accounts_from_db();
+    if (!accounts || !accounts[0])
+    {
+        sendto_one(client, NULL, ":%s LISTACC NO_ACCOUNTS :No accounts registered.", me.name);
+        return;
+    }
+
+    for (int i = 0; accounts[i]; i++)
+    {
+        Account *acc = accounts[i];
+        sendto_one(client, NULL, ":%s LISTACC ACCOUNT %s %s %ld %d", me.name, acc->name, acc->email, (long)acc->time_registered, acc->verified);
+    }
+
+    for (int j = 0; accounts[j]; j++)
+        free_account(accounts[j]);
+    free(accounts);
 }
