@@ -38,7 +38,7 @@ const char *saslmechs(Client *client);
 #define DelSaslType(x)		do { moddata_client(x, sasl_md).i = SASL_TYPE_NONE; } while (0)
 
 // SASL MD serialization
-ModDataInfo *sasl_md = NULL;
+extern ModDataInfo *sasl_md;
 void sat_free(ModData *m);
 const char *sat_serialize(ModData *m);
 void sat_unserialize(const char *str, ModData *m);
