@@ -23,6 +23,7 @@ module
 /* One include for all */
 #include "obsidian.h"
 
+ModDataInfo *sasl_md;
 long CAP_ACCOUNTREGISTRATION = 0L;
 
 ModuleHeader MOD_HEADER
@@ -75,6 +76,13 @@ MOD_INIT()
     HookAdd(modinfo->handle, HOOKTYPE_SASL_AUTHENTICATE, 0, authenticate_attempt);
     CommandAdd(modinfo->handle, CMD_REGISTER, register_account, 3, CMD_USER|CMD_UNREGISTERED);
     CommandAdd(modinfo->handle, CMD_LISTACC, list_accounts, 3, CMD_OPER);
+
+    RPCHandlerInfo r;
+    memset(&r, 0, sizeof(r));
+    r.method = "obsidianirc.accounts.list";
+	r.loglevel = ULOG_DEBUG;
+	r.call = rpc_list_accounts;
+    RPCHandlerAdd(modinfo->handle, &r);
     return MOD_SUCCESS;
 }
 
@@ -615,7 +623,7 @@ int authenticate_attempt(Client *client, int first, const char *param)
 
 const char *saslmechs(Client *client)
 {
-    return "PLAIN,ANONYMOUS,EXTERNAL";
+    return "PLAIN,ANONYMOUS";
 }
 
 const char *sat_serialize(ModData *m)
@@ -637,4 +645,75 @@ void sat_free(ModData *m)
 void sat_unserialize(const char *str, ModData *m)
 {
     m->i = atoi(str);
+}
+
+
+/**
+ * account2json - Converts an Account struct to a JSON object.
+ * Returns a new json_t* object.
+ */
+json_t* account2json(const Account *acc) {
+    json_t *j = json_object();
+    json_object_set_new(j, "id", acc->id ? json_integer(acc->id) : 0);
+    json_object_set_new(j, "name", json_string(acc->name));
+    json_object_set_new(j, "email", json_string(acc->email));
+    json_object_set_new(j, "password", json_string(acc->password));
+    json_object_set_new(j, "time_registered", json_integer(acc->time_registered));
+    json_object_set_new(j, "verified", json_integer(acc->verified));
+
+    // Channels array
+    json_t *jchannels = json_array();
+    if (acc->channels) {
+        for (char **c = acc->channels; *c; ++c)
+            json_array_append_new(jchannels, json_string(*c));
+    }
+    json_object_set_new(j, "channels", jchannels);
+
+    // Metadata array
+    json_t *jmeta = json_array();
+    for (Metadata *m = acc->metadata_head; m; m = m->next)
+    {
+        json_t *mj = json_object();
+        json_object_set_new(mj, "key", json_string(m->key));
+        json_object_set_new(mj, "value", json_string(m->value));
+        json_array_append_new(jmeta, mj);
+    }
+    json_object_set_new(j, "metadata", jmeta);
+    
+    json_t *jmembers = json_object();
+    for (AccountMember *m = acc->members; m; m = m->next)
+        json_expand_client(jmembers, m->client->id, m->client, 2);
+    
+    json_object_set_new(j, "online_clients", jmembers);
+    
+    return j;
+}
+
+RPC_CALL_FUNC(rpc_list_accounts)
+{
+    if (!db)
+    {
+        rpc_error(client, request, JSON_RPC_ERROR_INTERNAL_ERROR, "Database is not available.");
+        return;
+    }
+
+    Account **accounts = read_accounts_from_db(NULL);
+    if (!accounts || !accounts[0])
+    {
+        free(accounts);
+        rpc_error(client, request, JSON_RPC_ERROR_NOT_FOUND, "No accounts registered.");
+        return;
+    }
+
+    json_t *jaccounts = json_array(), *result = json_object();
+    for (size_t i = 0; accounts[i]; i++)
+    {
+        json_t *jacc = account2json(accounts[i]);
+        json_array_append_new(jaccounts, jacc);
+        free_account(accounts[i]);
+    }
+    free(accounts);
+    json_object_set_new(result, "accounts", jaccounts);
+    rpc_response(client, request, result);
+    json_decref(result);
 }
