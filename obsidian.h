@@ -11,10 +11,18 @@
 // Commands
 #define CMD_REGISTER "REGISTER"
 #define CMD_LISTACC "LISTACC"
+#define CMD_IDENTIFY "IDENTIFY"
+#define CMD_LOGOUT "LOGOUT"
 
 // Command functions
 CMD_FUNC(register_account);
 CMD_FUNC(list_accounts);
+CMD_FUNC(cmd_identify);
+CMD_FUNC(cmd_logout);
+
+// RPC commands
+RPC_CALL_FUNC(rpc_list_accounts);
+RPC_CALL_FUNC(rpc_accounts_find);
 
 // Capabilities
 #define REGCAP_NAME "draft/account-registration"
@@ -38,7 +46,6 @@ const char *saslmechs(Client *client);
 #define DelSaslType(x)		do { moddata_client(x, sasl_md).i = SASL_TYPE_NONE; } while (0)
 
 // SASL MD serialization
-extern ModDataInfo *sasl_md;
 void sat_free(ModData *m);
 const char *sat_serialize(ModData *m);
 void sat_unserialize(const char *str, ModData *m);

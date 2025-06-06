@@ -76,6 +76,8 @@ MOD_INIT()
     HookAdd(modinfo->handle, HOOKTYPE_SASL_AUTHENTICATE, 0, authenticate_attempt);
     CommandAdd(modinfo->handle, CMD_REGISTER, register_account, 3, CMD_USER|CMD_UNREGISTERED);
     CommandAdd(modinfo->handle, CMD_LISTACC, list_accounts, 3, CMD_OPER);
+    CommandAdd(modinfo->handle, CMD_IDENTIFY, cmd_identify, 2, CMD_USER);
+    CommandAdd(modinfo->handle, CMD_LOGOUT, cmd_logout, 0, CMD_USER);
 
     RPCHandlerInfo r;
     memset(&r, 0, sizeof(r));
@@ -83,11 +85,18 @@ MOD_INIT()
 	r.loglevel = ULOG_DEBUG;
 	r.call = rpc_list_accounts;
     RPCHandlerAdd(modinfo->handle, &r);
+
+    memset(&r, 0, sizeof(r));
+    r.method = "obsidianirc.accounts.find";
+	r.loglevel = ULOG_DEBUG;
+	r.call = rpc_accounts_find;
+    RPCHandlerAdd(modinfo->handle, &r);
     return MOD_SUCCESS;
 }
 
 MOD_LOAD()
 {
+	ModuleSetOptions(modinfo->handle, MOD_OPT_PERM_RELOADABLE, 1);
     if (open_database(OBSIDIAN_DB) != SQLITE_OK)
     {
         config_error("Could not open database. Please contact ObsidianIRC Support.");
@@ -187,6 +196,11 @@ CMD_FUNC(register_account)
         sendto_one(client, NULL, ":%s REGISTER SUCCESS %s :Account registered successfully.", me.name, name);
         strlcpy(client->user->account, name, sizeof(client->user->account));
         user_account_login(NULL, client);
+        unreal_log(ULOG_INFO, "account", "REGISTER", client,
+            "New account registered by $client.details [account: $account] [email: $email]", 
+            log_data_string("account", acc->name),
+            log_data_string("email", acc->email)
+        );
         RunHook(HOOKTYPE_ACCOUNT_REGISTER, acc, client);
     }
     else
@@ -599,6 +613,11 @@ int authenticate_attempt(Client *client, int first, const char *param)
         if (account && argon2_verify(account->password, password, strlen(password), Argon2_id) == ARGON2_OK)
         {
             strlcpy(client->user->account, account->name, sizeof(client->user->account));
+            unreal_log(ULOG_INFO, "account", "LOGIN", client,
+                "User $client.details logged in [account: $account] [email: $email]",
+                log_data_string("email", account->email),
+                log_data_string("account", account->name)
+            );
             user_account_login(NULL, client);
             sendnumeric(client, RPL_SASLSUCCESS);
             client->local->sasl_complete = 1;
@@ -716,4 +735,123 @@ RPC_CALL_FUNC(rpc_list_accounts)
     json_object_set_new(result, "accounts", jaccounts);
     rpc_response(client, request, result);
     json_decref(result);
+}
+
+RPC_CALL_FUNC(rpc_accounts_find)
+{
+    if (!db)
+    {
+        rpc_error(client, request, JSON_RPC_ERROR_INTERNAL_ERROR, "Database is not available.");
+        return;
+    }
+    const char *name;
+    REQUIRE_PARAM_STRING("name", name);
+
+    Account *acc = find_account(name);
+    if (!acc)
+    {
+        rpc_error(client, request, JSON_RPC_ERROR_NOT_FOUND, "Account not found.");
+        return;
+    }
+
+    json_t *jacc = account2json(acc);
+    rpc_response(client, request, jacc);
+    json_decref(jacc);
+    free_account(acc);
+}
+
+// For users who don't support SASL, we provide a way to identify to an account
+// using the IDENTIFY command. This is a fallback for those who cannot use SASL.
+CMD_FUNC(cmd_identify)
+{
+    if (!db && open_database(OBSIDIAN_DB) != SQLITE_OK)
+    {
+        sendto_one(client, NULL, ":%s FAIL IDENTIFY SERVER_BUG :Database unavailable.", me.name);
+        return;
+    }
+    if (parc < 3)
+    {
+        sendto_one(client, NULL, ":%s NOTE IDENTIFY INVALID_PARAMS :Syntax: /IDENTIFY <account> <password>", me.name);
+        return;
+    }
+    const char *account_name = parv[1];
+    if (!account_name || !*account_name)
+    {
+        sendto_one(client, NULL, ":%s FAIL IDENTIFY INVALID_ACCOUNT :Account name cannot be empty.", me.name);
+        return;
+    }
+    if (!strcasecmp(account_name, client->user->account))
+    {
+        sendto_one(client, NULL, ":%s FAIL IDENTIFY ALREADY_IDENTIFIED :You are already identified to account %s.", me.name, account_name);
+        return;
+    }
+    if (strlen(account_name) < 4)
+    {
+        sendto_one(client, NULL, ":%s FAIL IDENTIFY INVALID_ACCOUNT :Account name must be at least 4 characters long.", me.name);
+        return;
+    }
+    Client *found_user = find_client(account_name, NULL);
+    if (found_user && found_user != client)
+    {
+        sendto_one(client, NULL, ":%s FAIL IDENTIFY INVALID_ACCOUNT :That account name is currently in use.", me.name);
+        return;
+    }
+    TKL *ban = my_find_tkl_nameban(account_name);
+    if (ban)
+    {
+        sendto_one(client, NULL, ":%s FAIL IDENTIFY INVALID_ACCOUNT :That account name is banned.", me.name);
+        return;
+    }
+
+    const char *password = parv[2];
+    if (!password || !*password)
+    {
+        sendto_one(client, NULL, ":%s FAIL IDENTIFY INVALID_PASSWORD :Password cannot be empty.", me.name);
+        return;
+    }
+
+    if (!client->user || !client->user->account || !*client->user->account)
+    {
+        sendto_one(client, NULL, ":%s FAIL IDENTIFY NOT_LOGGED_IN :You must be logged in to identify.", me.name);
+        return;
+    }
+    Account *acc = find_account(account_name);
+    if (!acc)
+    {
+        sendto_one(client, NULL, ":%s FAIL IDENTIFY ACCOUNT_NOT_FOUND :Account %s not found.", me.name, account_name);
+        return;
+    }
+
+    if (argon2_verify(acc->password, password, strlen(password), Argon2_id) == ARGON2_OK)
+    {
+        sendto_one(client, NULL, ":%s IDENTIFY SUCCESS %s :You have been successfully identified.", me.name, acc->name);
+        strlcpy(client->user->account, acc->name, sizeof(client->user->account));
+        user_account_login(NULL, client);
+        DelSaslType(client);
+        unreal_log(ULOG_INFO, "account", "IDENTIFY", client,
+            "User $client.details identified [account: $account] [email: $email]",
+            log_data_string("email", acc->email),
+            log_data_string("account", acc->name)
+        );
+    }
+    else
+    {
+        sendto_one(client, NULL, ":%s FAIL IDENTIFY INVALID_PASSWORD :Invalid password for account %s.", me.name, acc->name);
+        client->local->sasl_sent_time = 0;
+        add_fake_lag(client, 7000);
+    }
+    
+    free_account(acc);
+}
+
+CMD_FUNC(cmd_logout)
+{
+    if (!IsLoggedIn(client))
+    {
+        sendto_one(client, NULL, ":%s FAIL LOGOUT NOT_LOGGED_IN :You are not logged in.", me.name);
+        return;
+    }
+    strlcpy(client->user->account, "0", sizeof(client->user->account));
+    user_account_login(NULL, client);
+    sendto_one(client, NULL, ":%s LOGOUT SUCCESS :You have been logged out successfully.", me.name);
 }
