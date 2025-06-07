@@ -51,13 +51,13 @@ MOD_INIT()
     mreq.type = MODDATATYPE_CLIENT;
     if (!(sasl_md = ModDataAdd(modinfo->handle, mreq)))
     {
-        config_error("Could not add ModData for sasl_auth_type. Please contact developer.");
+        config_error("Could not add ModData for sasl_auth_type. Please open an Issue on GitHub: https://github.com/ObsidianIRC/UnrealIRCd-Modules/issues/.");
         return MOD_FAILED;
     }
 
     if (open_database(OBSIDIAN_DB) != SQLITE_OK)
     {
-        config_error("Could not open database. Please contact ObsidianIRC Support.");
+        config_error("Could not open database. Please open an Issue on GitHub: https://github.com/ObsidianIRC/UnrealIRCd-Modules/issues/.");
         return MOD_FAILED;
     }
 
@@ -68,7 +68,7 @@ MOD_INIT()
     accreg_cap.parameter = accreg_capability_parameter;
     if (!ClientCapabilityAdd(modinfo->handle, &accreg_cap, &CAP_ACCOUNTREGISTRATION))
     {
-        config_error("Could not add CAP for draft/account-registration. Please contact ObsidianIRC Support.");
+        config_error("Could not add CAP for draft/account-registration. Please open an Issue on GitHub: https://github.com/ObsidianIRC/UnrealIRCd-Modules/issues/.");
         return MOD_FAILED;
     }
 
