@@ -7,6 +7,14 @@
 
 // Database files
 #define OBSIDIAN_DB "../data/obsidian.db"
+// Config
+#define CONF_ACCOUNT_BLOCK "account-registration"
+
+// Range allowed
+#define MIN_ACCOUNT_NAME_LENGTH 1
+#define MAX_ACCOUNT_NAME_LENGTH 200
+#define MIN_PASSWORD_LENGTH 3
+#define MAX_PASSWORD_LENGTH 200
 
 // Commands
 #define CMD_REGISTER "REGISTER"
@@ -23,6 +31,9 @@ CMD_FUNC(cmd_logout);
 // RPC commands
 RPC_CALL_FUNC(rpc_list_accounts);
 RPC_CALL_FUNC(rpc_accounts_find);
+
+// Events
+EVENT(nick_enforce); // Enforce Guest nicks
 
 // Capabilities
 #define REGCAP_NAME "draft/account-registration"
@@ -77,6 +88,31 @@ typedef struct Account {
     AccountMember *members;
 } Account;
 
+typedef struct AccountRegistrationConfStruct
+{
+    int min_name_length;
+    int max_name_length;
+    int min_password_length;
+    int max_password_length;
+    int require_email;
+    int require_terms_acceptance;
+    int allow_username_changes;
+    int allow_password_changes;
+    int allow_email_changes;
+    char *guest_nick_format;
+
+    bool got_min_name_length;
+    bool got_max_name_length;
+    bool got_min_password_length;
+    bool got_max_password_length;
+    bool got_require_email;
+    bool got_require_terms_acceptance;
+    bool got_allow_username_changes;
+    bool got_allow_password_changes;
+    bool got_allow_email_changes;
+    bool got_guest_nick_format;
+} AccountRegistrationConfStruct;
+
 // Global variables
 sqlite3 *db;
 
@@ -94,5 +130,11 @@ void add_metadata(Account *acc, const char *key, const char *value);
 TKL *my_find_tkl_nameban(const char *name);
 const char *accreg_capability_parameter(Client *client);
 int accreg_capability_visible(Client *client);
+void set_accreg_conf(void);
+void free_accreg_conf(void);
+int accreg_configtest(ConfigFile *cf, ConfigEntry *ce, int type, int *errs);
+int accreg_configposttest(int *errs);
+int accreg_configrun(ConfigFile *cf, ConfigEntry *ce, int type);
+char *convert_guest_nick_format(const char *format, Client *client);
 
 #endif

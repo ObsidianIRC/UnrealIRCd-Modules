@@ -5,7 +5,7 @@
 /*** <<<MODULE MANAGER START>>>
 module
 {
-        documentation "https://github.com/ObsidianIRC/UnrealIRCd-Modules";
+        documentation "https://github.com/link";
         troubleshooting "In case of problems, check the documentation or e-mail me at v.a.pond@outlook.com";
         min-unrealircd-version "6.1.0";
         max-unrealircd-version "6.*";
@@ -25,6 +25,7 @@ module
 
 ModDataInfo *sasl_md;
 long CAP_ACCOUNTREGISTRATION = 0L;
+static struct AccountRegistrationConfStruct MyConf;
 
 ModuleHeader MOD_HEADER
 = 
@@ -41,6 +42,7 @@ ModuleHeader MOD_HEADER
  */
 MOD_INIT()
 {
+    set_accreg_conf(); // Set defaults
     ModDataInfo mreq;
 
     memset(&mreq, 0, sizeof(mreq));
@@ -74,10 +76,13 @@ MOD_INIT()
 
     HookAddConstString(modinfo->handle, HOOKTYPE_SASL_MECHS, 0, saslmechs);
     HookAdd(modinfo->handle, HOOKTYPE_SASL_AUTHENTICATE, 0, authenticate_attempt);
+	HookAdd(modinfo->handle, HOOKTYPE_CONFIGRUN, 0, accreg_configrun); // Run through the config and set the values
+	
     CommandAdd(modinfo->handle, CMD_REGISTER, register_account, 3, CMD_USER|CMD_UNREGISTERED);
     CommandAdd(modinfo->handle, CMD_LISTACC, list_accounts, 3, CMD_OPER);
     CommandAdd(modinfo->handle, CMD_IDENTIFY, cmd_identify, 2, CMD_USER);
     CommandAdd(modinfo->handle, CMD_LOGOUT, cmd_logout, 0, CMD_USER);
+    
 
     RPCHandlerInfo r;
     memset(&r, 0, sizeof(r));
@@ -116,6 +121,7 @@ MOD_UNLOAD()
     safe_free(iConf.sasl_server);
     iConf.sasl_server = NULL;
     return MOD_SUCCESS;
+    free_accreg_conf();
 }
 
 /**
@@ -139,9 +145,26 @@ CMD_FUNC(register_account)
     const char *email = parv[2];
     const char *password = parv[3];
 
-    if (strlen(name) < 4)
+    if (strlen(name) < MyConf.min_name_length || strlen(name) > MyConf.max_name_length)
     {
-        sendto_one(client, NULL, ":%s FAIL REGISTER BAD_ACCOUNT_NAME %s :Your account name must be at least 4 characters long.", me.name, name);
+        sendto_one(client, NULL, ":%s FAIL REGISTER BAD_ACCOUNT_NAME %s :Your account name must be between %d and %d characters long.", me.name, name, MyConf.min_name_length, MyConf.max_name_length);
+        return;
+    }
+
+    if (strlen(password) < MyConf.min_password_length || strlen(password) > MyConf.max_password_length)
+    {
+        sendto_one(client, NULL, ":%s FAIL REGISTER BAD_PASSWORD %s :Your password must be between %d and %d characters long.", me.name, name, MyConf.min_password_length, MyConf.max_password_length);
+        return;
+    }
+
+    if (MyConf.require_email
+        && (strlen(email) < 5
+        || !strcmp(email, "*")
+        || (!strchr(email, '@')
+        || !strchr(email, '.')))
+    )
+    {
+        sendto_one(client, NULL, ":%s FAIL REGISTER BAD_EMAIL %s :You must provide a valid email address.", me.name, name);
         return;
     }
 
@@ -854,4 +877,307 @@ CMD_FUNC(cmd_logout)
     strlcpy(client->user->account, "0", sizeof(client->user->account));
     user_account_login(NULL, client);
     sendto_one(client, NULL, ":%s LOGOUT SUCCESS :You have been logged out successfully.", me.name);
+}
+
+
+
+// Set defaults for the configuration settings here (called in MOD_INIT)
+void set_accreg_conf(void)
+{
+    MyConf.min_name_length = 3;
+    MyConf.max_name_length = 50;
+    MyConf.min_password_length = 8;
+    MyConf.max_password_length = 200;
+    MyConf.require_email = 1;
+    MyConf.require_terms_acceptance = 1;
+    MyConf.allow_username_changes = 1;
+    MyConf.allow_password_changes = 1;
+    MyConf.allow_email_changes = 1;
+    safe_strdup(MyConf.guest_nick_format, "Guest$d$d$d$d")
+}
+
+// Free the memory allocated for the configuration settings here (called in MOD_UNLOAD)
+void free_accreg_conf(void)
+{
+    safe_free(MyConf.guest_nick_format);
+}
+
+// Configuration testing function (check for errors in the config block) (called in MOD_TEST)
+int accreg_configtest(ConfigFile *cf, ConfigEntry *ce, int type, int *errs)
+{
+    int errors = 0;
+    ConfigEntry *cep;
+
+    if(type != CONFIG_MAIN)
+        return 0;
+    if(!ce || !ce->name)
+        return 0;
+    if(strcmp(ce->name, CONF_ACCOUNT_BLOCK))
+        return 0;
+
+    for(cep = ce->items; cep; cep = cep->next)
+    {
+        if(!cep->value)
+        {
+            config_error("%s:%i: blank %s value", cep->file->filename, cep->line_number, CONF_ACCOUNT_BLOCK);
+            errors++;
+            continue;
+        }
+		if(!cep->name)
+		{
+			config_error("%s:%i: blank %s item name", cep->file->filename, cep->line_number, CONF_ACCOUNT_BLOCK);
+			errors++;
+			continue;
+		}
+		if (!strcmp(cep->name, "min-name-length"))
+		{
+			if (MyConf.got_min_name_length)
+			{
+				config_error("%s:%i: duplicate %s::%s", cep->file->filename, cep->line_number, CONF_ACCOUNT_BLOCK, cep->name);
+				errors++;
+			}
+			MyConf.min_name_length = atoi(cep->value);
+			if (MyConf.min_name_length < MIN_ACCOUNT_NAME_LENGTH || MyConf.min_name_length > MAX_ACCOUNT_NAME_LENGTH)
+			{
+				config_error("%s:%i: %s::%s must be between %d and %d", cep->file->filename, cep->line_number, CONF_ACCOUNT_BLOCK, cep->name, MIN_ACCOUNT_NAME_LENGTH, MAX_ACCOUNT_NAME_LENGTH);
+				errors++;
+			}
+			MyConf.got_min_name_length = true;
+			continue;
+		}
+		if (!strcmp(cep->name, "max-name-length"))
+		{
+			if (MyConf.got_max_name_length)
+			{
+				config_error("%s:%i: duplicate %s::%s", cep->file->filename, cep->line_number, CONF_ACCOUNT_BLOCK, cep->name);
+				errors++;
+			}
+			MyConf.max_name_length = atoi(cep->value);
+			if (MyConf.max_name_length < MIN_ACCOUNT_NAME_LENGTH || MyConf.max_name_length > MAX_ACCOUNT_NAME_LENGTH)
+			{
+				config_error("%s:%i: %s::%s must be between %d and %d", cep->file->filename, cep->line_number, CONF_ACCOUNT_BLOCK, cep->name, MIN_ACCOUNT_NAME_LENGTH, MAX_ACCOUNT_NAME_LENGTH);
+				errors++;
+			}
+			MyConf.got_max_name_length = true;
+			continue;
+		}
+		if (!strcmp(cep->name, "min-password-length"))
+		{
+			if (MyConf.got_min_password_length)
+			{
+				config_error("%s:%i: duplicate %s::%s", cep->file->filename, cep->line_number, CONF_ACCOUNT_BLOCK, cep->name);
+				errors++;
+			}
+			MyConf.min_password_length = atoi(cep->value);
+			if (MyConf.min_password_length < MIN_PASSWORD_LENGTH || MyConf.min_password_length > MAX_PASSWORD_LENGTH)
+			{
+				config_error("%s:%i: %s::%s must be between %d and %d", cep->file->filename, cep->line_number, CONF_ACCOUNT_BLOCK, cep->name, MIN_PASSWORD_LENGTH, MAX_PASSWORD_LENGTH);
+				errors++;
+			}
+			MyConf.got_min_password_length = true;
+			continue;
+		}
+		if (!strcmp(cep->name, "max-password-length"))
+		{
+			if (MyConf.got_max_password_length)
+			{
+				config_error("%s:%i: duplicate %s::%s", cep->file->filename, cep->line_number, CONF_ACCOUNT_BLOCK, cep->name);
+				errors++;
+			}
+			MyConf.max_password_length = atoi(cep->value);
+			if (MyConf.max_password_length < MIN_PASSWORD_LENGTH || MyConf.max_password_length > MAX_PASSWORD_LENGTH)
+			{
+				config_error("%s:%i: %s::%s must be between %d and %d", cep->file->filename, cep->line_number, CONF_ACCOUNT_BLOCK, cep->name, MIN_PASSWORD_LENGTH, MAX_PASSWORD_LENGTH);
+				errors++;
+			}
+			MyConf.got_max_password_length = true;
+			continue;
+		}
+		if (!strcmp(cep->name, "require-email"))
+		{
+			if (MyConf.got_require_email)
+			{
+				config_error("%s:%i: duplicate %s::%s", cep->file->filename, cep->line_number, CONF_ACCOUNT_BLOCK, cep->name);
+				errors++;
+			}
+			MyConf.got_require_email = true;
+			continue;
+		}
+		if (!strcmp(cep->name, "require-terms-acceptance"))
+		{
+			if (MyConf.got_require_terms_acceptance)
+			{
+				config_error("%s:%i: duplicate %s::%s", cep->file->filename, cep->line_number, CONF_ACCOUNT_BLOCK, cep->name);
+				errors++;
+			}
+			MyConf.got_require_terms_acceptance = true;
+			continue;
+		}
+		if (!strcmp(cep->name, "allow-username-changes"))
+		{
+			if (MyConf.got_allow_username_changes)
+			{
+				config_error("%s:%i: duplicate %s::%s", cep->file->filename, cep->line_number, CONF_ACCOUNT_BLOCK, cep->name);
+				errors++;
+			}
+			MyConf.got_allow_username_changes = true;
+			continue;
+		}
+		if (!strcmp(cep->name, "allow-password-changes"))
+		{
+			if (MyConf.got_allow_password_changes)
+			{
+				config_error("%s:%i: duplicate %s::%s", cep->file->filename, cep->line_number, CONF_ACCOUNT_BLOCK, cep->name);
+				errors++;
+			}
+			MyConf.got_allow_password_changes = true;
+			continue;
+		}
+		if (!strcmp(cep->name, "allow-email-changes"))
+		{
+			if (MyConf.got_allow_email_changes)
+			{
+				config_error("%s:%i: duplicate %s::%s", cep->file->filename, cep->line_number, CONF_ACCOUNT_BLOCK, cep->name);
+				errors++;
+			}
+			MyConf.got_allow_email_changes = true;
+			continue;
+		}
+        if (!strcmp(cep->name, "guest-nick-format"))
+        {
+            if (MyConf.got_guest_nick_format)
+            {
+                config_error("%s:%i: duplicate %s::%s", cep->file->filename, cep->line_number, CONF_ACCOUNT_BLOCK, cep->name);
+                errors++;
+            }
+            if (BadPtr(cep->value))
+            {
+                config_error("%s:%i: %s::%s cannot be empty", cep->file->filename, cep->line_number, CONF_ACCOUNT_BLOCK, cep->name);
+                errors++;
+            }
+            MyConf.got_guest_nick_format = true;
+            continue;
+        }
+        // Unknown directive, warn about it
+        config_warn("%s:%i: unknown item %s::%s", cep->file->filename, cep->line_number, CONF_ACCOUNT_BLOCK, cep->name);
+    }
+    *errs = errors;
+    return errors ? -1 : 1;
+}
+
+
+// Run through the configuration and set the values (called in MOD_INIT, after MOD_TEST)
+int accreg_configrun(ConfigFile *cf, ConfigEntry *ce, int type)
+{
+    ConfigEntry *cep;
+
+    if(type != CONFIG_MAIN)
+        return 0;
+    if(!ce || !ce->name)
+        return 0;
+    if(strcmp(ce->name, CONF_ACCOUNT_BLOCK))
+        return 0;
+
+    for(cep = ce->items; cep; cep = cep->next)
+    {
+        if(!cep->name)
+            continue;
+
+        if(!strcmp(cep->name, "min-name-length"))
+        {
+            MyConf.min_name_length = atoi(cep->value);
+            continue;
+        }
+        if(!strcmp(cep->name, "max-name-length"))
+        {
+            MyConf.max_name_length = atoi(cep->value);
+            continue;
+        }
+        if(!strcmp(cep->name, "min-password-length"))
+        {
+            MyConf.min_password_length = atoi(cep->value);
+            continue;
+        }
+        if(!strcmp(cep->name, "max-password-length"))
+        {
+            MyConf.max_password_length = atoi(cep->value);
+            continue;
+        }
+        if(!strcmp(cep->name, "require-email"))
+        {
+            MyConf.require_email = config_checkval(cep->value, CFG_YESNO);
+            continue;
+        }
+        if(!strcmp(cep->name, "require-terms-acceptance"))
+        {
+            MyConf.require_terms_acceptance = config_checkval(cep->value, CFG_YESNO);
+            continue;
+        }
+        if(!strcmp(cep->name, "allow-username-changes"))
+        {
+            MyConf.allow_username_changes = config_checkval(cep->value, CFG_YESNO);
+            continue;
+        }
+        if(!strcmp(cep->name, "allow-password-changes"))
+        {
+            MyConf.allow_password_changes = config_checkval(cep->value, CFG_YESNO);
+            continue;
+        }
+        if(!strcmp(cep->name, "allow-email-changes"))
+        {
+            MyConf.allow_email_changes = config_checkval(cep->value, CFG_YESNO);
+            continue;
+        }
+        if (!strcmp(cep->name, "guest-prefix"))
+        {
+            if (MyConf.guest_nick_format)
+            {
+                free(MyConf.guest_nick_format);
+            }
+            MyConf.guest_nick_format = strdup(cep->value);
+            continue;
+        }
+    }
+
+    return 1;
+}
+
+// Convert $d to a random digit and $n to a users nick
+char *convert_guest_nick_format(const char *format, Client *client)
+{
+    if (!format || !*format)
+    {
+        return NULL;
+    }
+    size_t len = strlen(format);
+    char *result = safe_alloc(len + 1);
+    size_t j = 0;
+
+    for (size_t i = 0; i < len; i++)
+    {
+        if (format[i] == '$')
+        {
+            i++;
+            if (i < len && format[i] == 'd') // Random digit
+            {
+                result[j++] = '0' + (rand() % 10);
+            }
+            else if (i < len && format[i] == 'n' && client && client->name) // User's nick
+            {
+                strlcpy(result + j, client->name, len - j + 1);
+                j += strlen(client->name);
+            }
+            else
+            {
+                result[j++] = '$'; // Just a literal $
+                if (i < len) result[j++] = format[i];
+            }
+        }
+        else
+        {
+            result[j++] = format[i];
+        }
+    }
+    result[j] = '\0';
+    return result;
 }
