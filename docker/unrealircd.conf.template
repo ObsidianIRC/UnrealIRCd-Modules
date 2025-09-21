@@ -1,0 +1,113 @@
+/* UnrealIRCd Configuration Template
+ * Generated for Docker deployment with ObsidianIRC modules
+ * Environment variables will be substituted at runtime
+ */
+
+// Basic server information
+me {
+    name "${SERVER_NAME}";
+    info "UnrealIRCd Server with ObsidianIRC modules";
+    sid "001";
+};
+
+// Admin information
+admin {
+    "${ADMIN_EMAIL}";
+    "UnrealIRCd Administrator";
+    "${NETWORK_NAME} Network";
+};
+
+// Network class
+class clients {
+    pingfreq 90;
+    maxclients 1000;
+    sendq 200k;
+    recvq 8000;
+};
+
+class servers {
+    pingfreq 60;
+    maxclients 10;
+    sendq 20M;
+    connfreq 100;
+};
+
+// Allow block for client connections
+allow {
+    mask *;
+    class clients;
+    maxperip 5;
+};
+
+// Listen blocks for connections
+listen {
+    ip *;
+    port ${IRC_PORT};
+};
+
+listen {
+    ip *;
+    port ${SSL_PORT};
+    options { tls; };
+};
+
+// Operator block
+oper admin {
+    class clients;
+    mask *;
+    password "admin123";
+    operclass netadmin;
+    swhois "is a Network Administrator";
+    vhost netadmin.${SERVER_NAME};
+};
+
+// Load default essential modules
+include "modules.default.conf";
+
+// Load default snomask logging configuration
+include "snomasks.default.conf";
+
+// Load cloaking module (required for UnrealIRCd 6.x)
+loadmodule "cloak_sha256";
+
+// Load our custom ObsidianIRC modules
+loadmodule "third/o-icon";
+loadmodule "third/o-register";
+
+// Icon configuration (only if ICON_URL is set)
+${ICON_CONFIG}
+
+// Main configuration
+set {
+    kline-address "${ADMIN_EMAIL}";
+    modes-on-connect "+iwx";
+    modes-on-oper "+xwgs";
+    oper-auto-join "#opers";
+    options {
+        hide-ulines;
+        show-connect-info;
+    };
+    maxchannelsperuser 20;
+    default-server "${SERVER_NAME}";
+    network-name "${NETWORK_NAME}";
+    help-channel "#help";
+    hiddenhost-prefix "hidden";
+    prefix-quit "Quit";
+
+    // Cloak keys - CHANGE THESE IN PRODUCTION!
+    cloak-keys {
+        "${CLOAK_KEY1}";
+        "${CLOAK_KEY2}";
+        "${CLOAK_KEY3}";
+    };
+
+    default-bantime 30d;
+    modef-default-unsettime 60;
+};
+
+// Alias configuration for common commands
+alias "chanserv" { target "chanserv"; type services; };
+alias "nickserv" { target "nickserv"; type services; };
+alias "operserv" { target "operserv"; type services; };
+alias "services" { target "chanserv"; type services; };
+
