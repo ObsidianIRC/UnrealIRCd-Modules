@@ -20,6 +20,7 @@ services:
       - NETWORK_NAME=${NETWORK_NAME:-ObsidianNetwork}
       - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@example.com}
       - ICON_URL=${ICON_URL:-}
+      - FILEHOST_URL=${FILEHOST_URL:-}
       - MOTD_TEXT=${MOTD_TEXT:-Welcome to ObsidianIRC! Connect and enjoy our features.}
     networks:
       - irc_network
