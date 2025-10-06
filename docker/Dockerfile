@@ -74,6 +74,7 @@ ENV SERVER_NAME=irc.example.com \
     NETWORK_NAME=MyNetwork \
     ADMIN_EMAIL=admin@example.com \
     ICON_URL="" \
+    FILEHOST_URL="" \
     MOTD_TEXT="Welcome to our IRC server!"
 
 # Create volume mount points
