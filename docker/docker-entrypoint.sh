@@ -8,6 +8,7 @@ export SSL_PORT="${SSL_PORT:-6697}"
 export NETWORK_NAME="${NETWORK_NAME:-ObsidianNetwork}"
 export ADMIN_EMAIL="${ADMIN_EMAIL:-admin@example.com}"
 export ICON_URL="${ICON_URL:-}"
+export FILEHOST_URL="${FILEHOST_URL:-}"
 export MOTD_TEXT="${MOTD_TEXT:-Welcome to our IRC server!}"
 
 # Configuration file paths
@@ -31,6 +32,15 @@ if [ -n "$ICON_URL" ]; then
 else
     export ICON_CONFIG=""
     echo "Icon configuration disabled"
+fi
+
+# Generate filehost configuration if FILEHOST_URL is provided
+if [ -n "$FILEHOST_URL" ]; then
+    export FILEHOST_CONFIG="filehosts { host \"$FILEHOST_URL\"; };"
+    echo "FILEHOST configuration enabled: $FILEHOST_URL"
+else
+    export FILEHOST_CONFIG=""
+    echo "FILEHOST configuration disabled"
 fi
 
 # Generate cloak keys if not provided
