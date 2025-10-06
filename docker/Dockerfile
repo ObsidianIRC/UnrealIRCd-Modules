@@ -35,7 +35,8 @@ WORKDIR /tmp/unrealircd-source
 
 # Copy our custom modules from repository root
 COPY --chown=unrealircd:unrealircd o-icon.c src/modules/third/
-COPY --chown=unrealircd:unrealircd o-register.c src/modules/third/
+COPY --chown=unrealircd:unrealircd o-filehost.c src/modules/third/
+COPY --chown=unrealircd:unrealircd obsidianirc.c src/modules/third/
 COPY --chown=unrealircd:unrealircd obsidian.h include/
 
 # Make Config executable and change ownership of entire source tree
