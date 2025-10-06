@@ -12,3 +12,11 @@ icon {
 ```
 ### Account Registration
 Provides the command /REGISTER for all your registration-y needs
+
+## Filehost
+Implements IRCv3 draft FILEHOST
+```
+filehosts {
+  host 'https://example.com/upload';
+}
+```
