@@ -110,19 +110,19 @@ MOD_INIT()
 	MessageTagHandlerAdd(modinfo->handle, &mtag);
 
 	memset(&mtag, 0, sizeof(mtag));
-	mtag.name = "obsidianirc/o-filehost-title";
+	mtag.name = "obsidianirc/link-preview-title";
 	mtag.is_ok = link_preview_mtag_is_ok;
 	mtag.flags = MTAG_HANDLER_FLAGS_NO_CAP_NEEDED;
 	MessageTagHandlerAdd(modinfo->handle, &mtag);
 
 	memset(&mtag, 0, sizeof(mtag));
-	mtag.name = "obsidianirc/o-filehost-snippet";
+	mtag.name = "obsidianirc/link-preview-snippet";
 	mtag.is_ok = link_preview_mtag_is_ok;
 	mtag.flags = MTAG_HANDLER_FLAGS_NO_CAP_NEEDED;
 	MessageTagHandlerAdd(modinfo->handle, &mtag);
 
 	memset(&mtag, 0, sizeof(mtag));
-	mtag.name = "obsidianirc/o-filehost-meta";
+	mtag.name = "obsidianirc/link-preview-meta";
 	mtag.is_ok = link_preview_mtag_is_ok;
 	mtag.flags = MTAG_HANDLER_FLAGS_NO_CAP_NEEDED;
 	MessageTagHandlerAdd(modinfo->handle, &mtag);
@@ -716,7 +716,7 @@ void send_link_preview(const char *channel, const char *msgid, const char *title
 
 	/* Add title tag */
 	m = safe_alloc(sizeof(MessageTag));
-	safe_strdup(m->name, "obsidianirc/o-filehost-title");
+	safe_strdup(m->name, "obsidianirc/link-preview-title");
 	safe_strdup(m->value, truncated_title);
 	AddListItem(m, mtags);
 
@@ -724,7 +724,7 @@ void send_link_preview(const char *channel, const char *msgid, const char *title
 	if (truncated_snippet[0])
 	{
 		m = safe_alloc(sizeof(MessageTag));
-		safe_strdup(m->name, "obsidianirc/o-filehost-snippet");
+		safe_strdup(m->name, "obsidianirc/link-preview-snippet");
 		safe_strdup(m->value, truncated_snippet);
 		AddListItem(m, mtags);
 	}
@@ -733,7 +733,7 @@ void send_link_preview(const char *channel, const char *msgid, const char *title
 	if (truncated_meta[0])
 	{
 		m = safe_alloc(sizeof(MessageTag));
-		safe_strdup(m->name, "obsidianirc/o-filehost-meta");
+		safe_strdup(m->name, "obsidianirc/link-preview-meta");
 		safe_strdup(m->value, truncated_meta);
 		AddListItem(m, mtags);
 	}
