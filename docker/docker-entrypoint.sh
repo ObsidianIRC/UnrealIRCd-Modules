@@ -27,7 +27,7 @@ chown unrealircd:unrealircd "$CONF_DIR" "$TLS_DIR" "$DATA_DIR"
 
 # Generate icon configuration if ICON_URL is provided
 if [ -n "$ICON_URL" ]; then
-    export ICON_CONFIG="icon { host \"$ICON_URL\"; };"
+    export ICON_CONFIG="icon { host '$ICON_URL'; };"
     echo "Icon configuration enabled: $ICON_URL"
 else
     export ICON_CONFIG=""
@@ -36,7 +36,7 @@ fi
 
 # Generate filehost configuration if FILEHOST_URL is provided
 if [ -n "$FILEHOST_URL" ]; then
-    export FILEHOST_CONFIG="filehosts { host \"$FILEHOST_URL\"; };"
+    export FILEHOST_CONFIG="filehosts { host '$FILEHOST_URL'; };"
     echo "FILEHOST configuration enabled: $FILEHOST_URL"
 else
     export FILEHOST_CONFIG=""
