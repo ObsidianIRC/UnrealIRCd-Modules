@@ -73,9 +73,13 @@ loadmodule "cloak_sha256";
 // Load our custom ObsidianIRC modules
 loadmodule "third/o-icon";
 loadmodule "third/o-register";
+loadmodule "third/o-filehost";
 
 // Icon configuration (only if ICON_URL is set)
 ${ICON_CONFIG}
+
+// Filehost config (only if FILEHOST_URL is set)
+${FILEHOST_CONFIG}
 
 // Main configuration
 set {
