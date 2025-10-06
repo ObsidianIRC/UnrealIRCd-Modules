@@ -71,8 +71,8 @@ include "snomasks.default.conf";
 loadmodule "cloak_sha256";
 
 // Load our custom ObsidianIRC modules
+loadmodule "third/obsidianirc";
 loadmodule "third/o-icon";
-loadmodule "third/o-register";
 loadmodule "third/o-filehost";
 
 // Icon configuration (only if ICON_URL is set)
@@ -109,9 +109,14 @@ set {
     modef-default-unsettime 60;
 };
 
-// Alias configuration for common commands
-alias "chanserv" { target "chanserv"; type services; };
-alias "nickserv" { target "nickserv"; type services; };
-alias "operserv" { target "operserv"; type services; };
-alias "services" { target "chanserv"; type services; };
-
+account-registration {
+    min-name-length 3;
+    max-name-length 20;
+    min-password-length 8;
+    max-password-length 200;
+    require-email true;
+    require-terms-acceptance false;
+    allow-username-changes true;
+    allow-password-changes true;
+    allow-email-changes true;
+}
