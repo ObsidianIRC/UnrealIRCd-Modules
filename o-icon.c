@@ -21,7 +21,7 @@ module
 
 #include "unrealircd.h"
 
-#define CONF_FAVICON "favicon"
+#define CONF_FAVICON "server-icon"
 
 /* FAVICON config struct */
 struct
