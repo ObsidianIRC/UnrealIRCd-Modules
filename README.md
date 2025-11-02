@@ -10,5 +10,3 @@ icon {
   host 'https://example.com/favicon.ico';
 }
 ```
-## Account Registration
-Provides the command /REGISTER for all your registration-y needs
