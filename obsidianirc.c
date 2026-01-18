@@ -120,8 +120,8 @@ MOD_UNLOAD()
     close_database();
     safe_free(iConf.sasl_server);
     iConf.sasl_server = NULL;
-    return MOD_SUCCESS;
     free_accreg_conf();
+    return MOD_SUCCESS;
 }
 
 /**
