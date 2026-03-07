@@ -9,6 +9,7 @@ module
         troubleshooting "In case of problems, check the documentation or e-mail me at v.a.pond@outlook.com";
         min-unrealircd-version "6.1.0";
         max-unrealircd-version "6.*";
+		compile-flags "-lsqlite3";
         post-install-text
         {
                 "The module is installed. Now all you need to do is add a loadmodule line:";
@@ -893,7 +894,7 @@ void set_accreg_conf(void)
     MyConf.allow_username_changes = 1;
     MyConf.allow_password_changes = 1;
     MyConf.allow_email_changes = 1;
-    safe_strdup(MyConf.guest_nick_format, "Guest$d$d$d$d")
+    safe_strdup(MyConf.guest_nick_format, "Guest$d$d$d$d");
 }
 
 // Free the memory allocated for the configuration settings here (called in MOD_UNLOAD)
