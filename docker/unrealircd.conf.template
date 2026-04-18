@@ -106,6 +106,15 @@ set {
 
     default-bantime 30d;
     modef-default-unsettime 60;
+
+    anti-flood {
+        connect-flood 255:10;
+    };
+};
+
+except ban {
+    mask { ip { 127.0.0.1; ::1; }; }
+    type { connect-flood; maxperip; }
 };
 
 account-registration {

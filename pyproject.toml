@@ -1,0 +1,13 @@
+[project]
+name = "unrealircd-modules-tests"
+version = "0.1.0"
+requires-python = ">=3.11"
+
+[dependency-groups]
+test = [
+    "pytest>=7.0",
+    "testcontainers[compose]>=4.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

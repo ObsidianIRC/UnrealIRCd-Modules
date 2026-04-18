@@ -1,0 +1,34 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      TESTCONTAINERS_RYUK_DISABLED: "true"
+      TESTCONTAINERS_HOST_OVERRIDE: "localhost"
+      TESTCONTAINERS_CONNECTION_MODE: "docker_host"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --group test
+
+      - name: Run E2E tests
+        run: uv run pytest tests/ -v
+
+      - name: Dump container logs on failure
+        if: failure()
+        run: docker ps -a && docker logs $(docker ps -aq --filter ancestor=unrealircd-modules-test) 2>/dev/null || true

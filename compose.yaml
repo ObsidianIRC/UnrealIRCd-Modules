@@ -6,30 +6,24 @@ services:
     container_name: obsidian-unrealircd
     restart: unless-stopped
     ports:
-      - "${IRC_PORT:-6667}:6667"
-      - "${SSL_PORT:-6697}:6697"
+      - "${IRC_PORT:-6667}:${IRC_PORT:-6667}"
+      - "${SSL_PORT:-6697}:${SSL_PORT:-6697}"
     volumes:
       - unrealircd_conf:/home/unrealircd/unrealircd/conf
       - unrealircd_data:/home/unrealircd/unrealircd/data
       - unrealircd_logs:/home/unrealircd/unrealircd/logs
       - unrealircd_tls:/home/unrealircd/unrealircd/tls
-    environment:
-      - SERVER_NAME=${SERVER_NAME:-irc.example.com}
-      - IRC_PORT=${IRC_PORT:-6667}
-      - SSL_PORT=${SSL_PORT:-6697}
-      - NETWORK_NAME=${NETWORK_NAME:-ObsidianNetwork}
-      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@example.com}
-      - ICON_URL=${ICON_URL:-}
-      - FILEHOST_URL=${FILEHOST_URL:-}
-      - MOTD_TEXT=${MOTD_TEXT:-Welcome to ObsidianIRC! Connect and enjoy our features.}
+    env_file:
+      - path: .env
+        required: false
     networks:
       - irc_network
     healthcheck:
-      test: ["CMD", "nc", "-z", "localhost", "6667"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+      test: ["CMD-SHELL", "nc -z localhost ${IRC_PORT:-6667}"]
+      interval: 5s
+      timeout: 5s
+      retries: 6
+      start_period: 5s
 
 volumes:
   unrealircd_conf:
