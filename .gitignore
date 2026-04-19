@@ -52,11 +52,13 @@ certs/
 # Node modules (if any)
 node_modules/
 
-# Python cache (if any)
+# Python
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
+.venv/
+.pytest_cache/
 
 # Local development overrides
 docker-compose.override.yml

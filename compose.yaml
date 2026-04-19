@@ -6,24 +6,21 @@ services:
     container_name: obsidian-unrealircd
     restart: unless-stopped
     ports:
-      - "${IRC_PORT:-6667}:${IRC_PORT:-6667}"
-      - "${SSL_PORT:-6697}:${SSL_PORT:-6697}"
+      - "${SSL_HOST_PORT:-6697}:6697"
     volumes:
-      - unrealircd_conf:/home/unrealircd/unrealircd/conf
-      - unrealircd_data:/home/unrealircd/unrealircd/data
-      - unrealircd_logs:/home/unrealircd/unrealircd/logs
-      - unrealircd_tls:/home/unrealircd/unrealircd/tls
+      - ${CONF_BIND:-unrealircd_conf}:/home/unrealircd/unrealircd/conf
+      - ${DATA_BIND:-unrealircd_data}:/home/unrealircd/unrealircd/data
+      - ${LOGS_BIND:-unrealircd_logs}:/home/unrealircd/unrealircd/logs
+      - ${TLS_BIND:-unrealircd_tls}:/home/unrealircd/unrealircd/tls
     env_file:
       - path: .env
         required: false
-    networks:
-      - irc_network
     healthcheck:
-      test: ["CMD-SHELL", "nc -z localhost ${IRC_PORT:-6667}"]
+      test: ["CMD-SHELL", "nc -z localhost 6697"]
       interval: 5s
       timeout: 5s
       retries: 6
-      start_period: 5s
+      start_period: 10s
 
 volumes:
   unrealircd_conf:
@@ -34,7 +31,3 @@ volumes:
     driver: local
   unrealircd_tls:
     driver: local
-
-networks:
-  irc_network:
-    driver: bridge

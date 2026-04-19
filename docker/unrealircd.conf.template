@@ -51,6 +51,12 @@ listen {
     options { tls; };
 };
 
+listen {
+    ip *;
+    port ${WS_PORT};
+    options { websocket; };
+};
+
 // Operator block
 oper admin {
     class clients;
@@ -96,6 +102,11 @@ set {
     help-channel "#help";
     hiddenhost-prefix "hidden";
     prefix-quit "Quit";
+
+    tls {
+        certificate "${TLS_DIR}/server.cert.pem";
+        key "${TLS_DIR}/server.key.pem";
+    };
 
     // Cloak keys - CHANGE THESE IN PRODUCTION!
     cloak-keys {
