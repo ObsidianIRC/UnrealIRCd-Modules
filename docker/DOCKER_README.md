@@ -71,6 +71,8 @@ docker run -d \
 | `FILEHOST_URL` | *(empty)* | File hosting backend URL for o-filehost module |
 | `MOTD_TEXT` | `Welcome to our IRC server!` | Message of the Day |
 | `CLOAK_KEY1/2/3` | *(generated)* | Host cloaking keys — set in production for consistency |
+| `RPC_PASSWORD` | *(empty)* | Enable JSON-RPC API with this password (disabled if not set) |
+| `RPC_PORT` | `8600` | Internal JSON-RPC port (not published; route via reverse proxy) |
 | `CONF_BIND` | *(named volume)* | Host path for conf volume (bind mount override) |
 | `DATA_BIND` | *(named volume)* | Host path for data volume (bind mount override) |
 | `LOGS_BIND` | *(named volume)* | Host path for logs volume (bind mount override) |

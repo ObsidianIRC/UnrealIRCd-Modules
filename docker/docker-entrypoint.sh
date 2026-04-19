@@ -6,6 +6,8 @@ export SERVER_NAME="${SERVER_NAME:-irc.example.com}"
 export IRC_PORT="${IRC_PORT:-6667}"
 export SSL_PORT="${SSL_PORT:-6697}"
 export WS_PORT="${WS_PORT:-8080}"
+export RPC_PORT="${RPC_PORT:-8600}"
+export RPC_PASSWORD="${RPC_PASSWORD:-}"
 export NETWORK_NAME="${NETWORK_NAME:-ObsidianNetwork}"
 export ADMIN_EMAIL="${ADMIN_EMAIL:-admin@example.com}"
 export ICON_URL="${ICON_URL:-}"
@@ -42,6 +44,17 @@ if [ -n "$FILEHOST_URL" ]; then
 else
     export FILEHOST_CONFIG=""
     echo "FILEHOST configuration disabled"
+fi
+
+# Generate RPC configuration if RPC_PASSWORD is provided
+if [ -n "$RPC_PASSWORD" ]; then
+    export RPC_CONFIG="include \"rpc.modules.default.conf\";
+listen { ip *; port $RPC_PORT; options { rpc; }; };
+rpc-user admin { match { ip *; } rpc-class full; password \"$RPC_PASSWORD\"; };"
+    echo "RPC enabled on port $RPC_PORT"
+else
+    export RPC_CONFIG=""
+    echo "RPC disabled (set RPC_PASSWORD to enable)"
 fi
 
 # Generate cloak keys if not provided

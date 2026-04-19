@@ -86,6 +86,9 @@ ${ICON_CONFIG}
 // Filehost config (only if FILEHOST_URL is set)
 ${FILEHOST_CONFIG}
 
+// RPC config (only if RPC_PASSWORD is set)
+${RPC_CONFIG}
+
 // Main configuration
 set {
     kline-address "${ADMIN_EMAIL}";
