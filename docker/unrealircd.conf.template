@@ -51,11 +51,7 @@ listen {
     options { tls; };
 };
 
-listen {
-    ip *;
-    port ${WS_PORT};
-    options { websocket; };
-};
+${WS_CONFIG}
 
 // Operator block
 oper admin {
@@ -121,9 +117,6 @@ set {
     default-bantime 30d;
     modef-default-unsettime 60;
 
-    anti-flood {
-        connect-flood 255:10;
-    };
 };
 
 except ban {

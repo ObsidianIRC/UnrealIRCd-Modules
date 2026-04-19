@@ -37,6 +37,14 @@ else
     echo "Icon configuration disabled"
 fi
 
+# Generate WebSocket configuration
+if [ -n "$WS_PORT" ]; then
+    export WS_CONFIG="loadmodule \"websocket\";
+listen { ip *; port $WS_PORT; options { websocket; }; };"
+else
+    export WS_CONFIG=""
+fi
+
 # Generate filehost configuration if FILEHOST_URL is provided
 if [ -n "$FILEHOST_URL" ]; then
     export FILEHOST_CONFIG="filehosts { host '$FILEHOST_URL'; };"
@@ -100,6 +108,7 @@ if [ ! -f "$FIRST_RUN_MARKER" ]; then
         # Set proper permissions
         chmod 600 "$TLS_DIR/server.key.pem"
         chmod 644 "$TLS_DIR/server.cert.pem"
+        chown unrealircd:unrealircd "$TLS_DIR/server.key.pem" "$TLS_DIR/server.cert.pem"
 
         echo "Temporary SSL certificate generated (valid for 1 day)"
         echo "WARNING: This is for testing only! Use proper certificates in production."
