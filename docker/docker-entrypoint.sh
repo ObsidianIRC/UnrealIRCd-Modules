@@ -145,7 +145,9 @@ if [ -d "$CUSTOM_MODULES_DIR" ]; then
         modname=$(basename "$src" .c)
         outfile="/home/unrealircd/unrealircd/modules/third/${modname}.so"
         echo "Compiling custom module: $modname"
-        if su-exec unrealircd gcc -shared -fPIC -o "$outfile" "$src" \
+        if su-exec unrealircd gcc -shared -fPIC -DPIC -DDYNAMIC_LINKING \
+            -Wl,-export-dynamic -Wl,-z,relro -Wl,-z,now \
+            -o "$outfile" "$src" \
             -I/tmp/unrealircd-source/include \
             -I/tmp/unrealircd-source \
             $(pkg-config --cflags openssl 2>/dev/null || true); then
