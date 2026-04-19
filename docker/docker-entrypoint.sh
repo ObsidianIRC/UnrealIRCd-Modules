@@ -39,12 +39,16 @@ fi
 
 # Generate WebSocket configuration
 if [ -n "$WS_PORT" ]; then
-    export WS_CONFIG="loadmodule \"websocket\";
+    export WS_CONFIG="loadmodule \"webserver\";
+loadmodule \"websocket\";
 listen {
     ip *;
     port $WS_PORT;
-    options { websocket; };
-    websocket { type text; };
+    options {
+        websocket {
+            type text;
+        };
+    };
 };"
 else
     export WS_CONFIG=""
