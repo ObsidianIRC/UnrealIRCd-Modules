@@ -12,6 +12,7 @@ services:
       - ${DATA_BIND:-unrealircd_data}:/home/unrealircd/unrealircd/data
       - ${LOGS_BIND:-unrealircd_logs}:/home/unrealircd/unrealircd/logs
       - ${TLS_BIND:-unrealircd_tls}:/home/unrealircd/unrealircd/tls
+      - ${CUSTOM_MODULES_BIND:-unrealircd_custom_modules}:/home/unrealircd/unrealircd/custom-modules
     env_file:
       - path: .env
         required: false
@@ -30,4 +31,6 @@ volumes:
   unrealircd_logs:
     driver: local
   unrealircd_tls:
+    driver: local
+  unrealircd_custom_modules:
     driver: local

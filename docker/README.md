@@ -48,6 +48,7 @@ docker run -d \
   -v unrealircd_data:/home/unrealircd/unrealircd/data \
   -v unrealircd_logs:/home/unrealircd/unrealircd/logs \
   -v unrealircd_tls:/home/unrealircd/unrealircd/tls \
+  -v unrealircd_custom_modules:/home/unrealircd/unrealircd/custom-modules \
   -e SERVER_NAME=irc.example.com \
   -e NETWORK_NAME=MyNetwork \
   -e ADMIN_EMAIL=admin@example.com \
@@ -77,17 +78,19 @@ docker run -d \
 | `DATA_BIND` | *(named volume)* | Host path for data volume (bind mount override) |
 | `LOGS_BIND` | *(named volume)* | Host path for logs volume (bind mount override) |
 | `TLS_BIND` | *(named volume)* | Host path for tls volume (bind mount override) |
+| `CUSTOM_MODULES_BIND` | *(named volume)* | Host path for custom modules volume (bind mount override) |
 
 ### Volumes
 
-The container uses the following persistent volumes:
+| Volume | Container path | Purpose |
+|--------|---------------|---------|
+| `unrealircd_conf` | `/home/unrealircd/unrealircd/conf` | Config files. Generated from template on first start, then left alone. Delete `.docker_initialized` inside to regenerate. |
+| `unrealircd_data` | `/home/unrealircd/unrealircd/data` | Runtime data: user accounts, channel database, TKL bans, reputation scores, and the JSON-RPC Unix socket (`rpc.socket`). |
+| `unrealircd_logs` | `/home/unrealircd/unrealircd/logs` | Server logs. |
+| `unrealircd_tls` | `/home/unrealircd/unrealircd/tls` | TLS certificate and key (`server.cert.pem`, `server.key.pem`). A self-signed cert valid for 1 day is generated if none are present (testing only). |
+| `unrealircd_custom_modules` | `/home/unrealircd/unrealircd/custom-modules` | Drop `.c` module source files here to have them compiled and loaded automatically. See [Custom modules](#custom-modules). |
 
-- **`/home/unrealircd/unrealircd/conf`**: Configuration files (generated from template on first run)
-- **`/home/unrealircd/unrealircd/data`**: Account database and persistent data
-- **`/home/unrealircd/unrealircd/logs`**: Server logs
-- **`/home/unrealircd/unrealircd/tls`**: SSL certificates (`server.cert.pem` + `server.key.pem`)
-
-By default named Docker volumes are used. Set `CONF_BIND`, `DATA_BIND`, `LOGS_BIND`, or `TLS_BIND` to absolute paths to use bind mounts instead — useful when you need to know the exact location on disk (e.g. for cert sync scripts).
+By default named Docker volumes are used. Set the corresponding `*_BIND` env var to an absolute path to use a bind mount instead — useful when you need to know the exact location on disk (e.g. for cert sync scripts).
 
 ### Ports
 
@@ -114,6 +117,23 @@ Enables file hosting integration. Set `FILEHOST_URL` to your file hosting backen
 filehosts {
     host "https://files.example.com";
 };
+```
+
+## Custom modules
+
+The built-in modules (`obsidianirc`, `o-filehost`) are compiled into the image and always present. To load additional UnrealIRCd modules without rebuilding the image:
+
+1. Place your `.c` source file in the `unrealircd_custom_modules` volume (or the bind-mounted directory you set via `CUSTOM_MODULES_BIND`).
+2. Restart the container. The entrypoint compiles every `.c` file in that directory against the UnrealIRCd source tree and installs the resulting `.so` into `modules/third/`.
+3. Add `loadmodule "third/<yourmodule>";` to `unrealircd.conf` and rehash.
+
+If compilation fails, a warning is printed and the server starts normally without that module.
+
+```bash
+# Example: add a module from the host
+cp mymodule.c /path/to/custom-modules/
+docker compose restart unrealircd
+# Then add loadmodule line and rehash
 ```
 
 ## First Run Behavior

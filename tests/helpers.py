@@ -1,15 +1,14 @@
 import base64
 import socket
 import time
-from typing import Optional
 
 
 class IRCClient:
-    def __init__(self, host: str, port: int, timeout: float = 15.0):
+    def __init__(self, host: str, port: int, timeout: float = 15.0) -> None:
         self._host = host
         self._port = port
         self._timeout = timeout
-        self._sock: Optional[socket.socket] = None
+        self._sock: socket.socket | None = None
         self._buf = ""
 
     def connect(self) -> None:
@@ -33,11 +32,11 @@ class IRCClient:
                 pass
             self._sock = None
 
-    def __enter__(self):
+    def __enter__(self) -> "IRCClient":
         self.connect()
         return self
 
-    def __exit__(self, *_):
+    def __exit__(self, *_: object) -> None:
         self.disconnect()
 
     def send(self, line: str) -> None:
@@ -78,7 +77,6 @@ class IRCClient:
         return self.wait_for(" 001 ")
 
     def sasl_plain(self, nick: str, username: str, password: str) -> str:
-        """Full SASL PLAIN flow. Returns the 903/904 line."""
         self.send("CAP LS 302")
         self.wait_for("CAP", " LS ")
         self.send("CAP REQ :sasl")

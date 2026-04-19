@@ -15,20 +15,20 @@ def _account() -> tuple[str, str, str]:
 
 
 @pytest.fixture
-def client(irc_server):
+def client(irc_server: tuple[str, int]) -> IRCClient:
     host, port = irc_server
     with IRCClient(host, port) as c:
-        yield c
+        yield c  # type: ignore[misc]
 
 
-def test_server_connects_and_sends_welcome(irc_server):
+def test_server_connects_and_sends_welcome(irc_server: tuple[str, int]) -> None:
     host, port = irc_server
     with IRCClient(host, port) as c:
         welcome = c.connect_user(_nick())
     assert "001" in welcome
 
 
-def test_cap_ls_advertises_sasl(irc_server):
+def test_cap_ls_advertises_sasl(irc_server: tuple[str, int]) -> None:
     host, port = irc_server
     with IRCClient(host, port) as c:
         c.send("CAP LS 302")
@@ -36,7 +36,7 @@ def test_cap_ls_advertises_sasl(irc_server):
     assert "sasl" in line
 
 
-def test_cap_ls_advertises_account_registration(irc_server):
+def test_cap_ls_advertises_account_registration(irc_server: tuple[str, int]) -> None:
     host, port = irc_server
     with IRCClient(host, port) as c:
         c.send("CAP LS 302")
@@ -44,7 +44,7 @@ def test_cap_ls_advertises_account_registration(irc_server):
     assert "draft/account-registration" in line
 
 
-def test_register_new_account(client):
+def test_register_new_account(client: IRCClient) -> None:
     client.connect_user(_nick())
     name, email, password = _account()
     line = client.register(name, email, password)
@@ -52,7 +52,7 @@ def test_register_new_account(client):
     assert name in line
 
 
-def test_register_duplicate_account(client):
+def test_register_duplicate_account(client: IRCClient) -> None:
     client.connect_user(_nick())
     name, email, password = _account()
     client.register(name, email, password)
@@ -60,7 +60,7 @@ def test_register_duplicate_account(client):
     assert "FAIL REGISTER ACCOUNT_EXISTS" in line
 
 
-def test_identify_correct_password(irc_server):
+def test_identify_correct_password(irc_server: tuple[str, int]) -> None:
     host, port = irc_server
     name, email, password = _account()
 
@@ -74,7 +74,7 @@ def test_identify_correct_password(irc_server):
     assert "IDENTIFY SUCCESS" in line
 
 
-def test_identify_wrong_password(irc_server):
+def test_identify_wrong_password(irc_server: tuple[str, int]) -> None:
     host, port = irc_server
     name, email, password = _account()
 
@@ -88,7 +88,7 @@ def test_identify_wrong_password(irc_server):
     assert "FAIL IDENTIFY" in line
 
 
-def test_logout(irc_server):
+def test_logout(irc_server: tuple[str, int]) -> None:
     host, port = irc_server
     name, email, password = _account()
 
@@ -103,7 +103,7 @@ def test_logout(irc_server):
     assert "LOGOUT SUCCESS" in line
 
 
-def test_sasl_plain_success(irc_server):
+def test_sasl_plain_success(irc_server: tuple[str, int]) -> None:
     host, port = irc_server
     name, email, password = _account()
 
@@ -116,7 +116,7 @@ def test_sasl_plain_success(irc_server):
     assert "903" in line
 
 
-def test_sasl_plain_wrong_password(irc_server):
+def test_sasl_plain_wrong_password(irc_server: tuple[str, int]) -> None:
     host, port = irc_server
     name, email, password = _account()
 

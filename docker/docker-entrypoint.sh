@@ -137,6 +137,25 @@ else
     echo "To regenerate configuration, remove the config volume or delete $FIRST_RUN_MARKER"
 fi
 
+# Compile any user-supplied custom modules from /custom-modules/*.c
+CUSTOM_MODULES_DIR="/home/unrealircd/unrealircd/custom-modules"
+if [ -d "$CUSTOM_MODULES_DIR" ]; then
+    for src in "$CUSTOM_MODULES_DIR"/*.c; do
+        [ -f "$src" ] || continue
+        modname=$(basename "$src" .c)
+        outfile="/home/unrealircd/unrealircd/modules/third/${modname}.so"
+        echo "Compiling custom module: $modname"
+        if su-exec unrealircd gcc -shared -fPIC -o "$outfile" "$src" \
+            -I/tmp/unrealircd-source/include \
+            -I/tmp/unrealircd-source \
+            $(pkg-config --cflags openssl 2>/dev/null || true); then
+            echo "Compiled: ${modname}.so"
+        else
+            echo "WARNING: Failed to compile $modname — skipping"
+        fi
+    done
+fi
+
 # Check if configuration is valid as the unrealircd user
 echo "Validating configuration..."
 if su-exec unrealircd ./unrealircd configtest; then

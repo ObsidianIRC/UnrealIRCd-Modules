@@ -1,9 +1,9 @@
 import secrets
-import socket
 import string
 import subprocess
 import tempfile
 import time
+from collections.abc import Generator
 from pathlib import Path
 
 import pytest
@@ -15,15 +15,18 @@ TEST_IMAGE = "unrealircd-modules-test"
 TEMPLATE_SRC = ROOT / "docker" / "unrealircd.conf.template"
 
 
-def _wait_tcp(host: str, port: int, timeout: float = 90.0) -> None:
+def _wait_irc(host: str, port: int, timeout: float = 90.0) -> None:
+    """Wait until the IRC server responds with 001, handling the PING challenge."""
+    from tests.helpers import IRCClient
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         try:
-            with socket.create_connection((host, port), timeout=2):
-                return
-        except OSError:
+            with IRCClient(host, port, timeout=5.0) as c:
+                c.connect_user("p" + secrets.token_hex(4))
+            return
+        except (OSError, TimeoutError, ConnectionError):
             time.sleep(1)
-    raise TimeoutError(f"TCP {host}:{port} not reachable after {timeout}s")
+    raise TimeoutError(f"IRC {host}:{port} never sent 001 after {timeout}s")
 
 
 def _cloak_key() -> str:
@@ -31,8 +34,23 @@ def _cloak_key() -> str:
     return "".join(secrets.choice(chars) for _ in range(80))
 
 
+def _base_container() -> DockerContainer:
+    return (
+        DockerContainer(TEST_IMAGE)
+        .with_exposed_ports(6667)
+        .with_env("IRC_PORT", "6667")
+        .with_env("SSL_PORT", "6697")
+        .with_env("SERVER_NAME", "irc.test.local")
+        .with_env("NETWORK_NAME", "TestNet")
+        .with_env("ADMIN_EMAIL", "test@example.com")
+        .with_env("CLOAK_KEY1", _cloak_key())
+        .with_env("CLOAK_KEY2", _cloak_key())
+        .with_env("CLOAK_KEY3", _cloak_key())
+    )
+
+
 @pytest.fixture(scope="session")
-def irc_server():
+def built_images() -> None:
     subprocess.run(
         ["docker", "build", "-t", BASE_IMAGE, "-f", "docker/Dockerfile", "."],
         cwd=ROOT,
@@ -60,24 +78,11 @@ def irc_server():
             capture_output=True,
         )
 
-    container = (
-        DockerContainer(TEST_IMAGE)
-        .with_exposed_ports(6667)
-        .with_env("IRC_PORT", "6667")
-        .with_env("SSL_PORT", "6697")
-        .with_env("SERVER_NAME", "irc.test.local")
-        .with_env("NETWORK_NAME", "TestNet")
-        .with_env("ADMIN_EMAIL", "test@example.com")
-        .with_env("CLOAK_KEY1", _cloak_key())
-        .with_env("CLOAK_KEY2", _cloak_key())
-        .with_env("CLOAK_KEY3", _cloak_key())
-    )
-    container.start()
-    try:
+
+@pytest.fixture(scope="session")
+def irc_server(built_images: None) -> Generator[tuple[str, int], None, None]:
+    with _base_container() as container:
         host = container.get_container_host_ip()
         port = int(container.get_exposed_port(6667))
-        _wait_tcp(host, port)
-        time.sleep(3)
+        _wait_irc(host, port)
         yield host, port
-    finally:
-        container.stop()
