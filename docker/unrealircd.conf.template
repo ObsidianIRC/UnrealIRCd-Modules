@@ -51,8 +51,6 @@ listen {
     options { tls; };
 };
 
-${WS_CONFIG}
-
 // Operator block
 oper admin {
     class clients;
@@ -75,6 +73,9 @@ loadmodule "cloak_sha256";
 // Load our custom ObsidianIRC modules
 loadmodule "third/obsidianirc";
 loadmodule "third/o-filehost";
+
+// WebSocket listener (only if WS_PORT is set; loadmodule "websocket" included here)
+${WS_CONFIG}
 
 // Icon configuration (only if ICON_URL is set)
 ${ICON_CONFIG}
