@@ -83,6 +83,10 @@ FIRST_RUN_MARKER="$CONF_DIR/.docker_initialized"
 if [ ! -f "$FIRST_RUN_MARKER" ]; then
     echo "Fresh volume detected - generating configuration from template..."
 
+    # Copy default UnrealIRCd conf files (modules.default.conf, etc.) into volume
+    cp -r /etc/unrealircd/conf-defaults/. "$CONF_DIR/"
+    chown -R unrealircd:unrealircd "$CONF_DIR"
+
     # Process template with environment variables
     envsubst < "$TEMPLATE_FILE" > "$CONFIG_FILE"
 

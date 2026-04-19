@@ -55,6 +55,9 @@ RUN echo "1" | ./Config \
 # Switch back to root for final setup
 USER root
 
+# Save default conf files outside the volume mount point so they survive volume mounts
+RUN cp -r /home/unrealircd/unrealircd/conf /etc/unrealircd/conf-defaults
+
 # Create directories for runtime
 RUN mkdir -p /home/unrealircd/unrealircd/conf \
     && mkdir -p /home/unrealircd/unrealircd/data \
