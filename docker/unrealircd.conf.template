@@ -63,6 +63,7 @@ oper admin {
 
 // Load default essential modules
 include "modules.default.conf";
+include "operclass.default.conf";
 
 // Load default snomask logging configuration
 include "snomasks.default.conf";
