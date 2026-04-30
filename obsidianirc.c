@@ -38,6 +38,13 @@ ModuleHeader MOD_HEADER
     "unrealircd-6", /* Version of UnrealIRCd */
 };
 
+MOD_TEST()
+{
+    set_accreg_conf();
+    HookAdd(modinfo->handle, HOOKTYPE_CONFIGTEST, 0, accreg_configtest);
+    return MOD_SUCCESS;
+}
+
 /**
  * MOD_INIT - Module initialization routine.
  */

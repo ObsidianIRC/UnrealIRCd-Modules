@@ -63,6 +63,7 @@ oper admin {
 
 // Load default essential modules
 include "modules.default.conf";
+include "operclass.default.conf";
 
 // Load default snomask logging configuration
 include "snomasks.default.conf";
@@ -72,14 +73,19 @@ loadmodule "cloak_sha256";
 
 // Load our custom ObsidianIRC modules
 loadmodule "third/obsidianirc";
-loadmodule "third/o-icon";
 loadmodule "third/o-filehost";
+
+// WebSocket listener (only if WS_PORT is set; loadmodule "websocket" included here)
+${WS_CONFIG}
 
 // Icon configuration (only if ICON_URL is set)
 ${ICON_CONFIG}
 
 // Filehost config (only if FILEHOST_URL is set)
 ${FILEHOST_CONFIG}
+
+// RPC config (only if RPC_PASSWORD is set)
+${RPC_CONFIG}
 
 // Main configuration
 set {
@@ -98,6 +104,11 @@ set {
     hiddenhost-prefix "hidden";
     prefix-quit "Quit";
 
+    tls {
+        certificate "${TLS_DIR}/server.cert.pem";
+        key "${TLS_DIR}/server.key.pem";
+    };
+
     // Cloak keys - CHANGE THESE IN PRODUCTION!
     cloak-keys {
         "${CLOAK_KEY1}";
@@ -107,6 +118,12 @@ set {
 
     default-bantime 30d;
     modef-default-unsettime 60;
+
+};
+
+except ban {
+    mask { ip { 127.0.0.1; ::1; }; }
+    type { connect-flood; maxperip; }
 };
 
 account-registration {

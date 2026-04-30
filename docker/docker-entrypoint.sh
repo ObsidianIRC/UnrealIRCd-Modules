@@ -5,6 +5,9 @@ set -eu
 export SERVER_NAME="${SERVER_NAME:-irc.example.com}"
 export IRC_PORT="${IRC_PORT:-6667}"
 export SSL_PORT="${SSL_PORT:-6697}"
+export WS_PORT="${WS_PORT:-8080}"
+export RPC_PORT="${RPC_PORT:-8600}"
+export RPC_PASSWORD="${RPC_PASSWORD:-}"
 export NETWORK_NAME="${NETWORK_NAME:-ObsidianNetwork}"
 export ADMIN_EMAIL="${ADMIN_EMAIL:-admin@example.com}"
 export ICON_URL="${ICON_URL:-}"
@@ -15,7 +18,7 @@ export MOTD_TEXT="${MOTD_TEXT:-Welcome to our IRC server!}"
 CONF_DIR="/home/unrealircd/unrealircd/conf"
 TEMPLATE_FILE="/etc/unrealircd/unrealircd.conf.template"
 CONFIG_FILE="$CONF_DIR/unrealircd.conf"
-TLS_DIR="/home/unrealircd/unrealircd/conf/tls"
+export TLS_DIR="${TLS_DIR:-/home/unrealircd/unrealircd/tls}"
 DATA_DIR="/home/unrealircd/unrealircd/data"
 
 echo "Starting ObsidianIRC UnrealIRCd Docker container..."
@@ -34,6 +37,23 @@ else
     echo "Icon configuration disabled"
 fi
 
+# Generate WebSocket configuration
+if [ -n "$WS_PORT" ]; then
+    export WS_CONFIG="loadmodule \"webserver\";
+loadmodule \"websocket\";
+listen {
+    ip *;
+    port $WS_PORT;
+    options {
+        websocket {
+            type text;
+        };
+    };
+};"
+else
+    export WS_CONFIG=""
+fi
+
 # Generate filehost configuration if FILEHOST_URL is provided
 if [ -n "$FILEHOST_URL" ]; then
     export FILEHOST_CONFIG="filehosts { host '$FILEHOST_URL'; };"
@@ -41,6 +61,17 @@ if [ -n "$FILEHOST_URL" ]; then
 else
     export FILEHOST_CONFIG=""
     echo "FILEHOST configuration disabled"
+fi
+
+# Generate RPC configuration if RPC_PASSWORD is provided
+if [ -n "$RPC_PASSWORD" ]; then
+    export RPC_CONFIG="include \"rpc.modules.default.conf\";
+listen { ip *; port $RPC_PORT; options { rpc; }; };
+rpc-user admin { match { ip *; } rpc-class full; password \"$RPC_PASSWORD\"; };"
+    echo "RPC enabled on port $RPC_PORT"
+else
+    export RPC_CONFIG=""
+    echo "RPC disabled (set RPC_PASSWORD to enable)"
 fi
 
 # Generate cloak keys if not provided
@@ -60,6 +91,10 @@ FIRST_RUN_MARKER="$CONF_DIR/.docker_initialized"
 
 if [ ! -f "$FIRST_RUN_MARKER" ]; then
     echo "Fresh volume detected - generating configuration from template..."
+
+    # Copy default UnrealIRCd conf files (modules.default.conf, etc.) into volume
+    cp -r /etc/unrealircd/conf-defaults/. "$CONF_DIR/"
+    chown -R unrealircd:unrealircd "$CONF_DIR"
 
     # Process template with environment variables
     envsubst < "$TEMPLATE_FILE" > "$CONFIG_FILE"
@@ -86,6 +121,7 @@ if [ ! -f "$FIRST_RUN_MARKER" ]; then
         # Set proper permissions
         chmod 600 "$TLS_DIR/server.key.pem"
         chmod 644 "$TLS_DIR/server.cert.pem"
+        chown unrealircd:unrealircd "$TLS_DIR/server.key.pem" "$TLS_DIR/server.cert.pem"
 
         echo "Temporary SSL certificate generated (valid for 1 day)"
         echo "WARNING: This is for testing only! Use proper certificates in production."
@@ -99,6 +135,27 @@ if [ ! -f "$FIRST_RUN_MARKER" ]; then
 else
     echo "Volume already initialized, using existing configuration"
     echo "To regenerate configuration, remove the config volume or delete $FIRST_RUN_MARKER"
+fi
+
+# Compile any user-supplied custom modules from /custom-modules/*.c
+CUSTOM_MODULES_DIR="/home/unrealircd/unrealircd/custom-modules"
+if [ -d "$CUSTOM_MODULES_DIR" ]; then
+    for src in "$CUSTOM_MODULES_DIR"/*.c; do
+        [ -f "$src" ] || continue
+        modname=$(basename "$src" .c)
+        outfile="/home/unrealircd/unrealircd/modules/third/${modname}.so"
+        echo "Compiling custom module: $modname"
+        if su-exec unrealircd gcc -shared -fPIC -DPIC -DDYNAMIC_LINKING \
+            -Wl,-export-dynamic -Wl,-z,relro -Wl,-z,now \
+            -o "$outfile" "$src" \
+            -I/tmp/unrealircd-source/include \
+            -I/tmp/unrealircd-source \
+            $(pkg-config --cflags openssl 2>/dev/null || true); then
+            echo "Compiled: ${modname}.so"
+        else
+            echo "WARNING: Failed to compile $modname — skipping"
+        fi
+    done
 fi
 
 # Check if configuration is valid as the unrealircd user

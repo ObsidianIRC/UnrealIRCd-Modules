@@ -133,7 +133,6 @@ int accreg_capability_visible(Client *client);
 void set_accreg_conf(void);
 void free_accreg_conf(void);
 int accreg_configtest(ConfigFile *cf, ConfigEntry *ce, int type, int *errs);
-int accreg_configposttest(int *errs);
 int accreg_configrun(ConfigFile *cf, ConfigEntry *ce, int type);
 char *convert_guest_nick_format(const char *format, Client *client);
 
